@@ -3,17 +3,54 @@
 namespace numerical
 {
 
+    // Constructor
     template <typename T>
-    Tensor<T>::Tensor(const std::vector<size_t> &shape, Device device)
-        : shape_(shape), device_(device)
+    Tensor<T>::Tensor(const std::vector<size_t> &shape) //, Device device)
+        : shape_(shape)                                 //, device_(device)
     {
+        /*
+        if (device_.is_gpu)
+        {
+            if (device_.device_type == DeviceType::CUDA)
+            {
+                buffer_ = std::make_unique<CudaBuffer<T>>(total_size_, device_.device_id);
+            }
+            else if (device_.device_type == DeviceType::ROCm)
+            {
+                buffer_ = std::make_unique<RocmBuffer<T>>(total_size_, device_.device_id);
+            }
+            else if (device_.device_type == DeviceType::Vulkan)
+            {
+                buffer_ = std::make_unique<VulkanBuffer<T>>(total_size_, device_.device_id);
+            }
+            else if (device_.device_type == DeviceType::Metal)
+            {
+                buffer_ = std::make_unique<MetalBuffer<T>>(total_size_, device_.device_id);
+            }
+            else
+            {
+                throw std::runtime_error("Unsupported GPU type!");
+            }
+        }
+        else
+        {
+            buffer_ = std::make_unique<CpuBuffer<T>>(total_size_);
+        }
+        */
+
+        // Deploy buffer
+        buffer_ = std::make_unique<CpuBuffer<T>>(total_size_);
+
+        // Compute strides
         compute_strides();
+
+        // Compute total size
         total_size_ = 1;
         for (auto s : shape_)
             total_size_ *= s;
-        buffer_ = std::make_unique<CpuBuffer<T>>(total_size_); // Only CPU for now
     }
 
+    // Compute strides method
     template <typename T>
     void Tensor<T>::compute_strides()
     {
@@ -26,6 +63,7 @@ namespace numerical
         }
     }
 
+    // Compute offset method
     template <typename T>
     size_t Tensor<T>::compute_offset(const std::vector<size_t> &indices) const
     {
@@ -35,6 +73,7 @@ namespace numerical
         return offset;
     }
 
+    // Overdrive operator() for easy indexing
     template <typename T>
     T &Tensor<T>::operator()(const std::vector<size_t> &indices)
     {

@@ -23,6 +23,6 @@ namespace numerical
 }
 /* Use:
 Device cpu = Device::CPU();
-Device cuda_gpu0 = Device::GPU(0, GpuType::CUDA);
-Device amd_gpu1  = Device::GPU(1, GpuType::ROCm);
+Device cuda_gpu0 = Device::GPU(0, DeviceType::CUDA);
+Device amd_gpu1  = Device::GPU(1, DeviceType::ROCm);
 */
