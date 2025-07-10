@@ -1,7 +1,5 @@
 #include <iostream>
 #include "tensor.hpp"
-#include "scalar.hpp"
-#include "elementwise.hpp"
 
 using namespace cpu;
 
