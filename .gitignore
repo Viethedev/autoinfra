@@ -1,26 +1,31 @@
 # Build artifacts
 build/
-*.o
-*.obj
-*.so
-*.dll
-*.dylib
-
-# CMake
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
 Makefile
-build.sh
-
-# Python
-__pycache__/
-*.egg-info/
-dist/
+*.o
+*.obj
+*.exe
+*.out
+*.a
+*.so
+*.dll
+*.dylib
 
 # IDE
 .vscode/
 .idea/
+*.code-workspace
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+venv/
+.envrc
 
 # OS
 .DS_Store

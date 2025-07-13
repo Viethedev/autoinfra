@@ -1,0 +1,4 @@
+cd /c/users/admin/autoinfra/build
+cmake ..
+cmake --build .
+./tests/autoinfra_test
