@@ -1,58 +1,34 @@
 #pragma once
 
+#include <memory>
 #include <string>
-#include <stdexcept>
+#include <vector>
+#include "core/tensor.hpp"
 
-namespace dl {
+namespace core {
 
-/**
- * DeviceType
- *
- * Types of hardware device backends.
- */
-enum class DeviceType {
-    CPU,
-    CUDA,
-    AMDGPU
-};
-
-/**
- * Device
- *
- * Identifies a specific device (type + index).
- */
 class Device {
 public:
-    Device(DeviceType type, int index = 0)
-        : type_(type), index_(index) {}
+    virtual ~Device() = default;
 
-    DeviceType type() const { return type_; }
-    int index() const { return index_; }
+    // Name of the device, e.g., "cpu:0", "cuda:1"
+    virtual std::string name() const = 0;
 
-    std::string to_string() const {
-        switch (type_) {
-            case DeviceType::CPU:
-                return "cpu:" + std::to_string(index_);
-            case DeviceType::CUDA:
-                return "cuda:" + std::to_string(index_);
-            case DeviceType::AMDGPU:
-                return "amd:" + std::to_string(index_);
-            default:
-                throw std::invalid_argument("Unknown DeviceType");
-        }
-    }
+    // Allocate raw memory on device
+    virtual void* alloc(size_t bytes) = 0;
 
-    bool operator==(const Device& other) const {
-        return type_ == other.type_ && index_ == other.index_;
-    }
+    // Free raw memory
+    virtual void free(void* ptr) = 0;
 
-    bool operator!=(const Device& other) const {
-        return !(*this == other);
-    }
+    // Launch a registered kernel
+    virtual void run_kernel(const std::string& kernel_name,
+                            const std::vector<std::shared_ptr<Tensor>>& inputs,
+                            std::vector<std::shared_ptr<Tensor>>& outputs) = 0;
 
-private:
-    DeviceType type_;
-    int index_;
+    // Query device properties (num cores, memory, etc.)
+    virtual std::string properties() const = 0;
 };
 
-} // namespace dl
+using DevicePtr = std::shared_ptr<Device>;
+
+} 

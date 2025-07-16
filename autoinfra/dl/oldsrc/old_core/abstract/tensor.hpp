@@ -4,10 +4,11 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
-#include "core/datatype.hpp"
-#include "core/device.hpp"
+#include "dtype.hpp"
+#include "device.hpp"
+#include "allocator.hpp"
 
-namespace core {
+namespace dl {
 
 class Tensor {
 public:
@@ -31,8 +32,7 @@ public:
     virtual void to_device(const Device& target_device) = 0;
 
     // Allocator
-    virtual void* allocate(size_t nbytes) = 0;
-    virtual void free(void* ptr) = 0;
+    virtual std::shared_ptr<Allocator> allocator() const = 0;
 
     // Transformations
     virtual std::shared_ptr<Tensor> view(const std::vector<size_t>& new_shape) const = 0;
@@ -47,9 +47,9 @@ public:
                                           const std::vector<size_t>& step) const = 0;
 
     // In-place ops
-    virtual void zero() = 0;
-    virtual void fill(double value) = 0;
-    virtual void copy(const Tensor& src) = 0;
+    virtual void zero_() = 0;
+    virtual void fill_(double value) = 0;
+    virtual void copy_(const Tensor& src) = 0;
 };
 
-} 
+} // namespace dl

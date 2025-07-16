@@ -4,38 +4,9 @@
 #include <memory>
 #include <stdexcept>
 #include "device.hpp"
+#include "allocator.hpp"
 
 namespace dl {
-
-/**
- * Abstract Allocator interface.
- */
-class Allocator {
-public:
-    virtual ~Allocator() = default;
-
-    virtual void* allocate(size_t nbytes) = 0;
-    virtual void free(void* ptr) = 0;
-    virtual Device device() const = 0;
-};
-
-/**
- * CPU Allocator implementation.
- */
-class CpuAllocator : public Allocator {
-public:
-    void* allocate(size_t nbytes) override {
-        return std::malloc(nbytes);
-    }
-
-    void free(void* ptr) override {
-        std::free(ptr);
-    }
-
-    Device device() const override {
-        return Device(DeviceType::CPU);
-    }
-};
 
 /**
  * CUDA Allocator skeleton (placeholder).

@@ -3,55 +3,26 @@
 #include <vector>
 #include <memory>
 #include <cstring>
-#include "tensor.hpp"
-#include "allocator.hpp"
+#include "core/tensor.hpp"
+#include "core/datatype.hpp"
+#include "core/device.hpp"
 
-namespace dl {
+namespace cpu {
 
-class CpuTensor : public Tensor {
+class CpuTensor : public core::Tensor {
 public:
-    CpuTensor(const std::vector<size_t>& shape,
-              DType dtype,
-              std::shared_ptr<Allocator> allocator)
-        : shape_(shape), dtype_(dtype), allocator_(allocator) {
-
-        if (!allocator_ || allocator_->device().type() != DeviceType::CPU) {
-            throw std::invalid_argument("CpuTensor requires a CPU Allocator");
-        }
-
+    CpuTensor(const std::vector<size_t>& shape, core::DType dtype): shape_(shape), dtype_(dtype) {
         strides_ = compute_default_strides(shape_);
-        data_ = allocator_->allocate(numel() * dtype_size(dtype_));
+        data_ = std::malloc(nbytes());
     }
 
     ~CpuTensor() override {
-        if (data_) {
-            allocator_->free(data_);
-        }
+        if (data_) free(data_);
     }
+    static std::vector<size_t> compute_contiguous_strides(const std::vector<size_t>& shape) {};
 
-    const std::vector<size_t>& shape() const override { return shape_; }
-    const std::vector<size_t>& strides() const override { return strides_; }
-    size_t ndim() const override { return shape_.size(); }
-    size_t numel() const override {
-        size_t n = 1;
-        for (size_t d : shape_) n *= d;
-        return n;
-    }
-    size_t nbytes() const override {
-        return numel() * dtype_size(dtype_);
-    }
-    DType dtype() const override { return dtype_; }
-    bool is_contiguous() const override { return true; }
-
-    void* data() override { return data_; }
-    const void* data() const override { return data_; }
-
-    Device device() const override { return allocator_->device(); }
-
-    std::shared_ptr<Allocator> allocator() const override { return allocator_; }
-
-    void to_device(const Device& target_device) override {
-        if (target_device.type() != DeviceType::CPU) {
+    void to_device(const core::Device& target_device) override {
+        if (target_device.type() != core::DeviceType::CPU) {
             throw std::runtime_error("Cross-device copy not implemented yet.");
         }
         // No-op for CPU->CPU
@@ -89,11 +60,11 @@ public:
     }
 
     void fill_(double value) override {
-        if (dtype_ != DType::FLOAT32 && dtype_ != DType::FLOAT64) {
+        if (dtype_ != core::DType::FLOAT32 && dtype_ != core::DType::FLOAT64) {
             throw std::runtime_error("fill_ only implemented for floating-point");
         }
         size_t n = numel();
-        if (dtype_ == DType::FLOAT32) {
+        if (dtype_ == core::DType::FLOAT32) {
             float* ptr = static_cast<float*>(data_);
             for (size_t i = 0; i < n; ++i) ptr[i] = static_cast<float>(value);
         } else {
@@ -102,7 +73,7 @@ public:
         }
     }
 
-    void copy_(const Tensor& src) override {
+    void copy_(const core::Tensor& src) override {
         if (src.nbytes() != nbytes()) {
             throw std::runtime_error("copy_: size mismatch");
         }
@@ -127,4 +98,4 @@ private:
     void* data_;
 };
 
-} // namespace dl
+} 
