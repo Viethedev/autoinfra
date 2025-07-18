@@ -1,55 +1,77 @@
 #pragma once
-
-#include <memory>
-#include <vector>
-#include <string>
-#include <stdexcept>
-#include "core/datatype.hpp"
+#include "core/shape.hpp"
 #include "core/device.hpp"
+#include "core/buffer.hpp"
+#include <memory>
+#include <stdexcept>
 
 namespace core {
 
 class Tensor {
 public:
-    virtual ~Tensor() = default;
+    Tensor(Shape shape, DType dtype, DevicePtr device)
+        : shape_(std::move(shape)), dtype_(dtype), device_(std::move(device)) {
+        if (!device_) throw std::invalid_argument("Device is null");
+        strides_ = compute_strides(shape_);
+        buffer_ = device_->alloc(numel(shape_), dtype_);
+    }
 
-    // Metadata
-    virtual const std::vector<size_t>& shape() const = 0;
-    virtual const std::vector<size_t>& strides() const = 0;
-    virtual size_t ndim() const = 0;
-    virtual size_t numel() const = 0;
-    virtual size_t nbytes() const = 0;
-    virtual DType dtype() const = 0;
-    virtual bool is_contiguous() const = 0;
+    // Create tensor from existing buffer (e.g. for views)
+    Tensor(Shape shape, Strides strides, DType dtype, DevicePtr device, BufferPtr buffer)
+        : shape_(std::move(shape)), strides_(std::move(strides)),
+          dtype_(dtype), device_(std::move(device)), buffer_(std::move(buffer)) {}
 
-    // Memory access
-    virtual void* data() = 0;
-    virtual const void* data() const = 0;
+    const Shape& shape() const { return shape_; }
+    const Strides& strides() const { return strides_; }
+    DType dtype() const { return dtype_; }
+    DevicePtr device() const { return device_; }
+    BufferPtr buffer() const { return buffer_; }
 
-    // Device
-    virtual Device device() const = 0;
-    virtual void to_device(const Device& target_device) = 0;
+    void* data() { return buffer_->data(); }
+    const void* data() const { return buffer_->data(); }
 
-    // Allocator
-    virtual void* allocate(size_t nbytes) = 0;
-    virtual void free(void* ptr) = 0;
+    size_t ndim() const { return shape_.size(); }
+    size_t size() const { return numel(shape_); }
+    size_t size_bytes() const { return buffer_->size_bytes(); }
 
-    // Transformations
-    virtual std::shared_ptr<Tensor> view(const std::vector<size_t>& new_shape) const = 0;
-    virtual std::shared_ptr<Tensor> reshape(const std::vector<size_t>& new_shape) const = 0;
-    virtual std::shared_ptr<Tensor> permute(const std::vector<size_t>& dims) const = 0;
-    virtual std::shared_ptr<Tensor> contiguous() const = 0;
-    virtual std::shared_ptr<Tensor> clone() const = 0;
+    // Element offset (row-major assumption)
+    size_t offset(const std::vector<size_t>& indices) const {
+        return compute_offset(shape_, strides_, indices);
+    }
 
-    // Indexing and slicing
-    virtual std::shared_ptr<Tensor> slice(const std::vector<size_t>& start,
-                                          const std::vector<size_t>& end,
-                                          const std::vector<size_t>& step) const = 0;
+    // View (reshape with shared buffer)
+    Tensor view(const Shape& new_shape) const {
+        if (numel(new_shape) != size())
+            throw std::invalid_argument("view(): total size mismatch");
+        return Tensor(new_shape, compute_strides(new_shape), dtype_, device_, buffer_);
+    }
 
-    // In-place ops
-    virtual void zero() = 0;
-    virtual void fill(double value) = 0;
-    virtual void copy(const Tensor& src) = 0;
+    // Reshape (alias of view)
+    Tensor reshape(const Shape& new_shape) const {
+        return view(new_shape);
+    }
+
+    // Indexing: returns scalar pointer (can be used with reinterpret_cast)
+    void* get_ptr(const std::vector<size_t>& indices) {
+        return static_cast<uint8_t*>(data()) + offset(indices) * dtype_size(dtype_);
+    }
+
+    const void* get_ptr(const std::vector<size_t>& indices) const {
+        return static_cast<const uint8_t*>(data()) + offset(indices) * dtype_size(dtype_);
+    }
+
+private:
+    Shape shape_;
+    Strides strides_;
+    DType dtype_;
+    DevicePtr device_;
+    BufferPtr buffer_;
 };
 
-} 
+using TensorPtr = std::shared_ptr<Tensor>;
+
+inline TensorPtr make_tensor(const Shape& shape, DType dtype, DevicePtr device) {
+    return std::make_shared<Tensor>(shape, dtype, device);
+}
+
+} // namespace core

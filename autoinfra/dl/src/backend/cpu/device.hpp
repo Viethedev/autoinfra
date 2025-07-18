@@ -1,39 +1,40 @@
 #pragma once
-
 #include "core/device.hpp"
-#include <thread>
+#include "backend/cpu/buffer.hpp"
 
 namespace cpu {
 
 class CpuDevice : public core::Device {
 public:
-    CpuDevice(int index) : index_(index) {}
+    explicit CpuDevice(int index = 0)
+        : index_(index) {}
+
+    core::DeviceType type() const override {
+        return core::DeviceType::CPU;
+    }
+
+    int index() const override {
+        return index_;
+    }
 
     std::string name() const override {
         return "cpu:" + std::to_string(index_);
     }
 
-    void* alloc(size_t bytes) override {
-        return std::malloc(bytes);
+    core::BufferPtr alloc(size_t num_elements, core::DType dtype) override {
+        return make_cpu_buffer(num_elements, dtype);
     }
 
-    void free(void* ptr) override {
-        std::free(ptr);
-    }
-
-    void run_kernel(const std::string& kernel_name,
-                    const std::vector<std::shared_ptr<core::Tensor>>& inputs,
-                    std::vector<std::shared_ptr<core::Tensor>>& outputs) override {
-        // Look up kernel_name in registry and run it
-        // E.g., dispatch_table_[kernel_name](inputs, outputs);
-    }
-
-    std::string properties() const override {
-        return "CPU device with " + std::to_string(std::thread::hardware_concurrency()) + " threads.";
+    void free(core::BufferPtr buffer) override {
+        // nothing needed, shared_ptr will manage
     }
 
 private:
     int index_;
 };
 
-} 
+inline core::DevicePtr make_cpu_device(int index = 0) {
+    return std::make_shared<CpuDevice>(index);
+}
+
+} // namespace cpu

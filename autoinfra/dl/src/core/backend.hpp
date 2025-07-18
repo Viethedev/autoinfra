@@ -1,27 +1,25 @@
 #pragma once
-#include "device.hpp"
-#include <memory>
+#include "core/device.hpp"
 #include <vector>
+#include <memory>
 #include <string>
 
 namespace core {
-
-class Compiler;  // Forward declare
 
 class Backend {
 public:
     virtual ~Backend() = default;
 
-    // List available devices on this backend
-    virtual std::vector<DevicePtr> enumerate_devices() = 0;
-
-    // Name of the backend (e.g., "CPU", "CUDA", "AMD")
+    // Backend name: e.g. "cpu", "cuda"
     virtual std::string name() const = 0;
 
-    // (Optional) Provide a graph compiler
-    virtual std::shared_ptr<Compiler> create_compiler() = 0;
+    // Devices managed by this backend
+    virtual const std::vector<DevicePtr>& devices() const = 0;
+
+    // Future: register and dispatch kernels here
+    // virtual KernelRegistry& kernels() = 0;
 };
 
 using BackendPtr = std::shared_ptr<Backend>;
 
-} // namespace dl
+} // namespace core

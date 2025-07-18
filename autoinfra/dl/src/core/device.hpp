@@ -1,34 +1,43 @@
 #pragma once
-
-#include <memory>
+#include "core/buffer.hpp"
 #include <string>
-#include <vector>
-#include "core/tensor.hpp"
+#include <memory>
 
 namespace core {
+
+enum class DeviceType {
+    CPU,
+    CUDA,
+    ROCM,
+    TPU,
+    Unknown
+};
+
+inline std::string to_string(DeviceType type) {
+    switch (type) {
+        case DeviceType::CPU:   return "cpu";
+        case DeviceType::CUDA:  return "cuda";
+        case DeviceType::ROCM:  return "rocm";
+        case DeviceType::TPU:   return "tpu";
+        default:                return "unknown";
+    }
+}
 
 class Device {
 public:
     virtual ~Device() = default;
 
-    // Name of the device, e.g., "cpu:0", "cuda:1"
+    virtual DeviceType type() const = 0;
+    virtual int index() const = 0;
     virtual std::string name() const = 0;
 
-    // Allocate raw memory on device
-    virtual void* alloc(size_t bytes) = 0;
+    // Allocate memory buffer on this device
+    virtual BufferPtr alloc(size_t num_elements, DType dtype) = 0;
 
-    // Free raw memory
-    virtual void free(void* ptr) = 0;
-
-    // Launch a registered kernel
-    virtual void run_kernel(const std::string& kernel_name,
-                            const std::vector<std::shared_ptr<Tensor>>& inputs,
-                            std::vector<std::shared_ptr<Tensor>>& outputs) = 0;
-
-    // Query device properties (num cores, memory, etc.)
-    virtual std::string properties() const = 0;
+    // (Optional) Freeing buffer manually — usually not needed if shared_ptr is used
+    virtual void free(BufferPtr) = 0;
 };
 
 using DevicePtr = std::shared_ptr<Device>;
 
-} 
+} // namespace core
